@@ -2,6 +2,7 @@ SET NAMES 'UTF8MB4';
 SET TIME_ZONE = 'Asia/Calcutta';
 SET TIME_ZONE = '+5:30';
 
+DROP SCHEMA  securecapita;
 CREATE SCHEMA IF NOT EXISTS securecapita;
 
 USE securecapita;

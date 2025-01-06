@@ -2,16 +2,22 @@ package com.sasicodes.securecapita.implementation;
 
 import com.sasicodes.securecapita.domain.Role;
 import com.sasicodes.securecapita.domain.User;
+import com.sasicodes.securecapita.domain.UserPrincipal;
 import com.sasicodes.securecapita.exception.ApiException;
 import com.sasicodes.securecapita.repository.RoleRepository;
 import com.sasicodes.securecapita.repository.UserRepository;
+import com.sasicodes.securecapita.rowMapper.UserRowMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Repository;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -28,7 +34,7 @@ import static com.sasicodes.securecapita.query.UserQuery.*;
 @Repository
 @RequiredArgsConstructor
 @Slf4j
-public class UserRepositoryImpl implements UserRepository<User> {
+public class UserRepositoryImpl implements UserRepository<User>, UserDetailsService {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -101,5 +107,30 @@ public class UserRepositoryImpl implements UserRepository<User> {
 
     private String getVerificationUrl(String key, String type) {
         return ServletUriComponentsBuilder.fromCurrentContextPath().path("/user/verify/" + type +"/" + key).toUriString();
+    }
+
+    @Override
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        User user = getUserByEmail(email);
+        if(user == null) {
+            log.error("User not found in database");
+            throw new UsernameNotFoundException("User not found in database");
+        } else {
+            log.info("User found in database: {}", email);
+            return new UserPrincipal(user, roleRepository.getRoleByUserId(user.getUser_id()).getPermission());
+        }
+    }
+
+    @Override
+    public User getUserByEmail(String email) {
+        try {
+            User user = jdbcTemplate.queryForObject(SELECT_USER_BY_EMAIL_QUERY, Map.of("email", email), new UserRowMapper());
+            return user;
+        } catch (EmptyResultDataAccessException exception) {
+            throw new ApiException("No User found by email: " + email);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw new ApiException("Something went wrong please try again !!!!");
+        }
     }
 }

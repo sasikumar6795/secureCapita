@@ -10,7 +10,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 public class SecureCapitaConfig {
 
     @Bean
-    public PasswordEncoder encoder() {
+    public BCryptPasswordEncoder encoder() {
         return new BCryptPasswordEncoder();
     }
 }

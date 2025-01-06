@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,6 +29,21 @@ import java.util.Map;
 public class UserResource {
 
     private final UserService userService;
+    private final AuthenticationManager authenticationManager;
+
+    @PostMapping("/login")
+    public ResponseEntity<HttpResponse> login(String email, String password) {
+        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
+        UserDto userDto = userService.getUserByEmail(email);
+        return ResponseEntity.ok().body(
+                HttpResponse.builder()
+                        .timeStamp(LocalDateTime.now().toString())
+                        .data(Map.of("user",userDto))
+                        .message("Login Success")
+                        .status(HttpStatus.CREATED)
+                        .statusCode(HttpStatus.CREATED.value())
+                        .build());
+    }
 
 
     @PostMapping("/register")
